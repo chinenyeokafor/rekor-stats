@@ -15,7 +15,8 @@ import time
 # folder name for storing dataset
 BASENAME = "dataset"
 # number of simultaneous processes to use
-NUM_PROCESSES = 20
+NUM_PROCESSES = 10
+RATE_LIMIT_DELAY = 2
 
 
 def detect_filenames(height, basename=BASENAME):
@@ -30,7 +31,6 @@ def detect_filenames(height, basename=BASENAME):
     """
     # range is NOT inclusive
     target = set(range(0, height))
-    print(target)
 
     for entry in os.listdir(basename):
         filename = os.path.basename(entry)
@@ -42,8 +42,8 @@ def detect_filenames(height, basename=BASENAME):
     return target
 
 
-def fetch_record(index, basename=BASENAME):
-    """Retrieve desired record from rekor database.
+def fetch_record_with_rate_limit(index, basename=BASENAME):
+    """Retrieve desired record from rekor database with rate limiting.
 
     Args:
         index (int): record index
@@ -57,13 +57,20 @@ def fetch_record(index, basename=BASENAME):
     print("filename", filename)
     print(f"Getting entry {index}...")
 
-    # use rekor-cli to query database
-    try:
-        record = subprocess.check_output(
-            ["rekor-cli", "--format", "json", "get", "--log-index", str(index)]
-        )
-    except Exception as e:
-        print(result, f"failed! Exception: {e}")
+        # Use rekor-cli to query database with rate limiting
+    attempt = 0
+    while attempt < 4:
+        try:
+            record = subprocess.check_output(
+                ["rekor-cli", "--format", "json", "get", "--log-index", str(index)]
+            )
+            break  # Break out of the loop if request succeeds
+        except Exception as e:
+            print(index, f"failed! Exception: {e}")
+            attempt += 1
+            time.sleep(RATE_LIMIT_DELAY)  # Add delay between requests
+    else:
+        print(f"Failed to retrieve record for index {index}")
         record = ""
 
     return record, filename
@@ -96,8 +103,9 @@ def process_record(index, basename=BASENAME):
     Returns:
         None
     """
-    record, filename = fetch_record(index, basename)
-    store_record(record, filename)
+    record, filename = fetch_record_with_rate_limit(index, basename)
+    if record != "":
+        store_record(record, filename)
 
 
 if __name__ == "__main__":
@@ -108,7 +116,7 @@ if __name__ == "__main__":
     # determine total number of records currently in database
     output = subprocess.check_output(["rekor-cli", "loginfo"])
     # TODO: make parsing less brittle
-    height = int(output.decode("utf-8").split("\n")[1].split()[2].strip())
+    height = int(output.decode("utf-8").split("\n")[1].split()[3].strip())
     print(f"log height: {height}")
 
     # check cache and print count of records requiring download
