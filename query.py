@@ -14,30 +14,35 @@ import time
 
 # folder name for storing dataset
 BASENAME = "dataset"
+DOWNLOADED = "downloaded_entry.txt"
 # number of simultaneous processes to use
 NUM_PROCESSES = 10
 RATE_LIMIT_DELAY = 2
 
 
-def detect_filenames(height, basename=BASENAME):
+def detect_filenames(max_height,min_height, downloaded=DOWNLOADED):
     """Find records not yet downloaded.
 
     Args:
-        height (int): number of records in rekor database
-        basename (str): folder containing records
+        max_height (int): number of records in rekor database
+        downloaded (str): file containing downloaded entries
 
     Returns:
         target (set) - entries not yet downloaded
     """
-    # range is NOT inclusive
-    target = set(range(0, height))
 
-    for entry in os.listdir(basename):
-        filename = os.path.basename(entry)
-        # TODO: make parsing less brittle
-        # extract index number from filename
-        index = int(os.path.splitext(filename)[0].split("-", 2)[1])
-        target.remove(index)
+    # range is NOT inclusive
+    target = set(range(min_height, max_height + 1))
+
+    try:
+      with open(downloaded, 'r') as f:
+          indexes = [int(line.strip()) for line in f]
+      for index in indexes:
+          if min_height <= index <= max_height:
+              target.remove(index)
+    except FileNotFoundError:
+        # If the file doesn't exist, assume no entries have been downloaded
+        pass
 
     return target
 
@@ -114,20 +119,23 @@ if __name__ == "__main__":
         os.mkdir(BASENAME)
 
     # determine total number of records currently in database
-    output = subprocess.check_output(["rekor-cli", "loginfo"])
+    # output = subprocess.check_output(["rekor-cli", "loginfo"])
     # TODO: make parsing less brittle
-    height = int(output.decode("utf-8").split("\n")[1].split()[3].strip())
-    print(f"log height: {height}")
+    # height = int(output.decode("utf-8").split("\n")[1].split()[3].strip())
+    max_height = 65000000 
+    min_height = 45000001
+    print(f"log height: {max_height}")
 
     # check cache and print count of records requiring download
     print("Identifying locally-cached entries...", end="")
-    need_to_download = detect_filenames(height)
+    need_to_download = detect_filenames(max_height, min_height)
     print("done")
     print(f"There are {len(need_to_download)} entries to download")
 
     # use multiprocessing to speed up download
     with Pool(NUM_PROCESSES) as p:
         p.map(process_record, need_to_download)
+    print("Download Completed")
 
     # alternative method of speeding up download
     # TODO: Will require some rewriting to use
