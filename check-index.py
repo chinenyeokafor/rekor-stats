@@ -25,14 +25,20 @@ def get_highest_and_least_index(basename):
         if least_index == float('inf'):
             least_index = -1
 
-        # Save indexes to a file
-        with open('downloaded_entry.txt', 'w') as f:
+        try:
+            with open('downloaded_entry.txt', 'r') as f:
+                existing_indexes = set(line.strip() for line in f)
+        except FileNotFoundError:
+            existing_indexes = set()
+            
+        with open('downloaded_entry.txt', 'a') as f:
             for index in indexes:
-                f.write(f"{index}\n")
+                if index not in existing_indexes:
+                    f.write(f"{index}\n")
 
     except FileNotFoundError:
         print(f"Directory {basename} does not exist.")
-        # Return default values if directory does not exist
+        # Return default values
         highest_index = -1
         least_index = -1
 
