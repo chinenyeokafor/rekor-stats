@@ -27,7 +27,8 @@ def get_highest_and_least_index(basename):
 
         try:
             with open('downloaded_entry.txt', 'r') as f:
-                existing_indexes = set(line.strip() for line in f)
+                existing_indexes = set(int(line.strip()) for line in f)
+
         except FileNotFoundError:
             existing_indexes = set()
             
