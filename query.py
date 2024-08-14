@@ -36,7 +36,7 @@ def detect_filenames(max_height,min_height, downloaded=DOWNLOADED):
 
     try:
       with open(downloaded, 'r') as f:
-          indexes = [int(line.strip()) for line in f]
+          indexes = set(int(line.strip()) for line in f)
       for index in indexes:
           if min_height <= index <= max_height:
               target.remove(index)
