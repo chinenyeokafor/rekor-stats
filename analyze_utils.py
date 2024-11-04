@@ -20,7 +20,7 @@ config.read('config.ini')
 unknown_Obj_path = config['DEFAULT']['unknown_Obj_path']
 none_type_path = config['DEFAULT']['none_type_path']
 wrong_ascii_filepath = config['DEFAULT']['wrong_ascii_filepath']
-dataset_path = config['DEFAULT']['dataset_path']
+dataset_path = config['DEFAULT']['all_dataset_path']
 
 signature_without_cert = 0
 
@@ -55,12 +55,12 @@ def view_certificate(cert_content):
         )
         
         if result.returncode == 0:
-            print(result.stdout)  
+            log(result.stdout)  
         else:
-            print(f"Error: {result.stderr}")
+            log(f"Error: {result.stderr}")
     
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log(f"An error occurred: {e}")
 
 
 def extract_cert_info(self,payload):
@@ -75,7 +75,7 @@ def extract_cert_info(self,payload):
                 build_signer_url_str = url_bytes.decode('utf-8')
                 return build_signer_url_str
             except UnicodeDecodeError as e:
-                print("Decoding failed:", e)
+                log("Decoding failed:", e)
 
     pub_key_delimiters = "-----BEGIN PUBLIC KEY-----", "-----BEGIN PGP", "---BEGIN SSH", "---BEGIN PGP", "---BEGIN PKCS7", "---BEGIN PGP", "ssh-rsa",
     exempt_type = "jar", "rpm", "alpine", "ssh",
@@ -96,7 +96,7 @@ def extract_cert_info(self,payload):
             
             attributes = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
             cert_ca = attributes[0].value if attributes else None
-            # print(f"Issuer1 is {cert_ca}")
+            # log(f"Issuer1 is {cert_ca}")
 
             if cert_ca == "sigstore-intermediate" or cert_ca == "sigstore":
                 try:
@@ -112,7 +112,7 @@ def extract_cert_info(self,payload):
                             x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.1")
                         ).value.value
                         oidc_issuer = format_url(oidc_issuer)
-                    # print(f"CI/CD oidc_issuer is {oidc_issuer}")
+                    # log(f"CI/CD oidc_issuer is {oidc_issuer}")
                     try:
                         build_signer_url = cert.extensions.get_extension_for_oid(
                             x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.9")
@@ -120,12 +120,12 @@ def extract_cert_info(self,payload):
                         build_signer_url = format_url(build_signer_url)
                         identity = build_signer_url
 
-                    # print(f"build_signer_url is {build_signer_url}")
+                    # log(f"build_signer_url is {build_signer_url}")
                     # source_repo_uri = cert.extensions.get_extension_for_oid(
                     #     x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.12")
                     # ).value.value
                     # source_repo_uri = format_url(source_repo_uri)
-                    # print(f"source_repo_uri_str is {source_repo_uri}")
+                    # log(f"source_repo_uri_str is {source_repo_uri}")
                     except:
                         pass
                 except:
@@ -146,7 +146,7 @@ def extract_cert_info(self,payload):
                             # some have email but no issuer
                             oidc_issuer = "No_Issuer"
                             pass
-                    # print(f" oidc_issuer is {oidc_issuer}")
+                    # log(f" oidc_issuer is {oidc_issuer}")
                     try:
 
                         san_extension = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME) 
@@ -155,7 +155,7 @@ def extract_cert_info(self,payload):
 
                         if email_values:
                             identity = email_values[0]
-                            # print(f"Email is {identity}")
+                            # log(f"Email is {identity}")
                             # TODO: Does this generalize? find better way to handle
                         elif san_extension.value.get_values_for_type(x509.UniformResourceIdentifier):
                             identity = san_extension.value.get_values_for_type(x509.UniformResourceIdentifier)[0]
@@ -210,7 +210,7 @@ def extract_cert_info(self,payload):
                 #         x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.8")
                 #     ).value.value
                 #     oidc_issuer = format_url(oidc_issuer)
-                #     # print(f" oidc_issuer is {oidc_issuer}")
+                #     # log(f" oidc_issuer is {oidc_issuer}")
                 # except:
                 #     pass1221720
             # if self._type == "minisign":
@@ -239,12 +239,12 @@ def extract_cert_info(self,payload):
     except:
         # import pdb; pdb.set_trace()
         # sample_index = [35473462, 9169368, 9105283, 9510006, 337, 693292, 699114, 2427822, 1196362, 3755199, 3755199]
-        # print(payload)
+        # log(payload)
         # if payload['LogIndex'] in sample_index:
         #     if self.author == 'invalid_type_in-toto':
         #         pass
         #     else:
-        #         print(f"LogIndex is {payload['LogIndex']}, type is {self._type}")
+        #         log(f"LogIndex is {payload['LogIndex']}, type is {self._type}")
         #         import pdb; pdb.set_trace()
         pass
 
@@ -275,16 +275,16 @@ def extract_cert_info_1(self, payload):
                 email_values = san_extension.value.get_values_for_type(x509.RFC822Name)
                 if email_values:
                     email = email_values[0]
-                    # print(f"{payload['LogIndex']} email is {email} \n Repo is {self.repo}")
+                    # log(f"{payload['LogIndex']} email is {email} \n Repo is {self.repo}")
                 
             except Exception as e:
-                # print(f"Error retrieving SAN: {e}")
+                # log(f"Error retrieving SAN: {e}")
                 try:
                     iss = cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
                     # if iss not in iss_set:
                     #     view_certificate(author)
-                    #     print()
-                    #     print(cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value)
+                    #     log()
+                    #     log(cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value)
                     #     iss_set.add(iss)
                     # import pdb; pdb.set_trace()
                     write_to_file(payload['LogIndex'], 'issues_folder/weird_CAs.txt')
@@ -297,7 +297,7 @@ def extract_cert_info_1(self, payload):
             try:
                 oicd = cert.extensions.get_extension_for_oid(provider_oid).value.value.decode("utf-8")
             except Exception as e:
-                # print(f"Error retrieving provider OID: {e}")
+                # log(f"Error retrieving provider OID: {e}")
                 # import pdb; pdb.set_trace()
                 oicd = "self"
 
@@ -310,7 +310,7 @@ def extract_cert_info_1(self, payload):
             #key
             signature_without_cert += 1
     except Exception as e:
-        print(f"Error extracting certificate info: {e}")
+        log(f"Error extracting certificate info: {e}")
         # import pdb; pdb.set_trace()
 
     # return None
@@ -324,7 +324,7 @@ def parse_rekord(self, payload):
         self.author = payload['Body']['RekordObj']['signature']['publicKey']['content']
         extract_cert_info(self, payload)
     except Exception as e:
-        print(e)
+        log(e)
         # import pdb; pdb.set_trace()
         
 def parse_in_toto(self, payload): 
@@ -405,18 +405,18 @@ def parse_in_toto(self, payload):
             self.author = "invalid_type_in-toto"
             # import pdb; pdb.set_trace()
 
-        # extract_cert_info(self, payload)
+        extract_cert_info(self, payload)
 
     except Exception as e:
         signature_without_cert += 1
         if "string argument should contain only ASCII characters" in str(e):
             write_to_file(payload['LogIndex'], wrong_ascii_filepath)
         if "'utf-8' codec can't decode" in str(e):
-            print(f"weird_intoto_format: index is {payload['LogIndex']}, type is {type(payload)}")
+            log(f"weird_intoto_format: index is {payload['LogIndex']}, type is {type(payload)}")
             write_to_file(payload['LogIndex'], 'issues_folder/weird_intoto_format_filepath')
         else:
-            print(f"other exception: index is {payload['LogIndex']}, type is {type(payload)}")
-            print(e)
+            log(f"other exception: index is {payload['LogIndex']}, type is {type(payload)}")
+            log(e)
             # import pdb; pdb.set_trace()
 
 def parse_hashed_rekord(self, payload): 
@@ -430,7 +430,7 @@ def parse_hashed_rekord(self, payload):
         self.author = payload['Body']['HashedRekordObj']['signature']['publicKey']['content']
         extract_cert_info(self, payload)
     except Exception as e:
-        print(e)
+        log(e)
         # import pdb; pdb.set_trace()
 
 
@@ -450,7 +450,7 @@ def parse_dsse(self, payload):
             self.author = payload['Body']["DSSEObj"]['signatures'][0]['verifier']
         extract_cert_info(self, payload)
     except Exception as e:
-        print(e)
+        log(e)
         # import pdb; pdb.set_trace()
 
 
@@ -510,7 +510,7 @@ def parse_alpine(self, payload_):
     try:
         self.artifact_id = payload['package']['pkginfo']['datahash']
     except Exception as e:
-        print(e)
+        log(e)
         # import pdb; pdb.set_trace()
     # FIXME: this should decode the b64 *and* then parse the cms payload to fetch a uid
     self.author = payload['publicKey']['content']
@@ -536,6 +536,10 @@ def write_to_file(content, file_path):
     with open(file_path, 'a') as file:
         file.write(f"{content}\n")
 
+Debug = False
+def log(s):
+    if Debug:
+        print(s)
 
 class RekorEntry:
 
@@ -628,6 +632,6 @@ if __name__ == "__main__":
 
     with open("type_breakdown.json", 'w') as fp:
         json.dump(classes, fp)
-    print(classes)
-    print(f"Total counts in classes: {classes.total()}")
-    print(f"Count of signature_without_cert: {signature_without_cert}")
+    log(classes)
+    log(f"Total counts in classes: {classes.total()}")
+    log(f"Count of signature_without_cert: {signature_without_cert}")
